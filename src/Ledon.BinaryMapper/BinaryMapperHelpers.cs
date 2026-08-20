@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Collections;
 using System.Reflection;
 using System.Text;
 using Ledon.BinaryMapper.Attributes;
@@ -39,7 +40,39 @@ internal static class BinaryMapperHelpers
         if (member.MemberType == typeof(string))
             return ReadString(data, ref position, member, settings);
 
-        if (TryReadBinaryType(data, ref position, member, out var binaryValue))
+        if (member.MemberType.IsArray)
+        {
+            if (!member.FixedLength.HasValue)
+                throw new BinaryMapperException($"数组 '{member.MemberType.Name}' 必须指定 [FixedLength]。");
+
+            var elementType = member.MemberType.GetElementType()!;
+            var elementMember = member.WithType(elementType);
+            var length = member.FixedLength.Value;
+            var array = Array.CreateInstance(elementType, length);
+
+            for (int i = 0; i < length; i++)
+                array.SetValue(ReadMember(data, ref position, elementMember, settings), i);
+
+            return array;
+        }
+
+        if (member.MemberType.IsGenericType && typeof(IList).IsAssignableFrom(member.MemberType))
+        {
+            if (!member.FixedLength.HasValue)
+                throw new BinaryMapperException($"IList '{member.MemberType.Name}' 必须指定 [FixedLength]。");
+
+            var elementType = member.MemberType.GetGenericArguments()[0];
+            var elementMember = member.WithType(elementType);
+            var list = (IList)Activator.CreateInstance(member.MemberType)!;
+            var length = member.FixedLength.Value;
+
+            for (int i = 0; i < length; i++)
+                list.Add(ReadMember(data, ref position, elementMember, settings));
+
+            return list;
+        }
+
+        if (TryReadBinaryType(data, ref position, member, settings, out var binaryValue))
             return binaryValue;
 
         return ReadPrimitive(data, ref position, member, settings);
@@ -93,7 +126,7 @@ internal static class BinaryMapperHelpers
         throw new BinaryMapperException($"不支持映射到类型 '{member.MemberType.FullName}'。");
     }
 
-    public static bool TryReadBinaryType(ReadOnlySpan<byte> data, ref int position, MappableMember member, out object? value)
+    public static bool TryReadBinaryType(ReadOnlySpan<byte> data, ref int position, MappableMember member, BinaryMapperSettings settings, out object? value)
     {
         value = null!;
 
@@ -112,6 +145,24 @@ internal static class BinaryMapperHelpers
         if (member.MemberType == typeof(CGuid))
         {
             value = new CGuid(ReadGuid(data, ref position));
+            return true;
+        }
+
+        if (member.MemberType.IsGenericType && member.MemberType.GetGenericTypeDefinition() == typeof(CArray<>))
+        {
+            if (!member.FixedLength.HasValue)
+                throw new BinaryMapperException("CArray 必须指定 [FixedLength]。");
+
+            var elementType = member.MemberType.GetGenericArguments()[0];
+            var elementMember = member.WithType(elementType);
+            var length = member.FixedLength.Value;
+            var array = Array.CreateInstance(elementType, length);
+
+            for (int i = 0; i < length; i++)
+                array.SetValue(ReadMember(data, ref position, elementMember, settings), i);
+
+            var cArrayType = typeof(CArray<>).MakeGenericType(elementType);
+            value = Activator.CreateInstance(cArrayType, [array])!;
             return true;
         }
 
@@ -231,6 +282,24 @@ internal static class BinaryMapperHelpers
         if (TryWritePrimitive(writer, value, member, settings))
             return;
 
+        if (value is Array array)
+        {
+            var elementType = value.GetType().GetElementType()!;
+            var elementMember = member.WithType(elementType);
+            for (int i = 0; i < array.Length; i++)
+                WriteElement(writer, array.GetValue(i)!, elementMember, settings);
+            return;
+        }
+
+        if (value is IList list)
+        {
+            var elementType = value.GetType().GetGenericArguments()[0];
+            var elementMember = member.WithType(elementType);
+            for (int i = 0; i < list.Count; i++)
+                WriteElement(writer, list[i]!, elementMember, settings);
+            return;
+        }
+
         if (value is not string && member.MemberType.IsClass)
         {
             WriteObject(writer, value, member.MemberType, settings);
@@ -242,6 +311,18 @@ internal static class BinaryMapperHelpers
 
     public static bool TryWriteBinaryType(BinaryWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
     {
+        // Handle CArray<T> before the switch
+        var valueType = value.GetType();
+        if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(CArray<>))
+        {
+            var array = (Array)valueType.GetProperty("Value")!.GetValue(value)!;
+            var elementType = valueType.GetGenericArguments()[0];
+            var elementMember = member.WithType(elementType);
+            for (int i = 0; i < array.Length; i++)
+                WriteElement(writer, array.GetValue(i)!, elementMember, settings);
+            return true;
+        }
+
         return value switch
         {
             CString cstring => WriteAndReturnTrue(writer, cstring, member, settings),
@@ -261,6 +342,33 @@ internal static class BinaryMapperHelpers
             CGuid g => WriteAndReturnTrue(writer, g),
             _ => false
         };
+    }
+
+    /// <summary>
+    /// 写入单个元素值（用于数组/IList/CArray 的元素级分发）。<br/>
+    /// Writes a single element value (element-level dispatch for arrays/IList/CArray).
+    /// </summary>
+    private static void WriteElement(BinaryWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
+    {
+        if (member.MemberType == typeof(string))
+        {
+            WriteString(writer, (string)value, member, settings);
+            return;
+        }
+
+        if (TryWriteBinaryType(writer, value, member, settings))
+            return;
+
+        if (TryWritePrimitive(writer, value, member, settings))
+            return;
+
+        if (!member.MemberType.IsValueType)
+        {
+            WriteObject(writer, value, member.MemberType, settings);
+            return;
+        }
+
+        throw new BinaryMapperException($"不支持序列化类型 '{member.MemberType.FullName}'。");
     }
 
     public static bool TryWritePrimitive(BinaryWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
