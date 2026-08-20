@@ -54,14 +54,47 @@ internal static class BinaryMapperHelpers
             return array;
         }
 
-        if (member.MemberType.IsGenericType && typeof(IList).IsAssignableFrom(member.MemberType))
+        if (typeof(IList).IsAssignableFrom(member.MemberType) && member.MemberType != typeof(string))
         {
+            Type? listType = null;
+            Type elementType;
+
+            if (member.MemberType.IsGenericType)
+            {
+                if (member.MemberType.GetGenericTypeDefinition() == typeof(IList<>))
+                {
+                    // IList<T> interface — instantiate as List<T>
+                    elementType = member.MemberType.GetGenericArguments()[0];
+                    listType = typeof(List<>).MakeGenericType(elementType);
+                }
+                else
+                {
+                    // Concrete generic type implementing IList, e.g. List<T>, Collection<T>
+                    elementType = member.MemberType.GetGenericArguments()[0];
+                    listType = member.MemberType;
+                }
+            }
+            else if (member.MemberType == typeof(IList))
+            {
+                // Non-generic IList interface — instantiate as List<object>
+                elementType = typeof(object);
+                listType = typeof(List<object>);
+            }
+            else
+            {
+                // Non-generic concrete IList, e.g. ArrayList — get element type from ICollection<T>
+                elementType = member.MemberType.GetInterfaces()
+                    .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>))
+                    .Select(i => i.GetGenericArguments()[0])
+                    .FirstOrDefault(typeof(object));
+                listType = member.MemberType;
+            }
+
             if (!member.FixedLength.HasValue)
                 throw new BinaryMapperException($"IList '{member.MemberType.Name}' 必须指定 [FixedLength]。");
 
-            var elementType = member.MemberType.GetGenericArguments()[0];
             var elementMember = member.WithType(elementType);
-            var list = (IList)Activator.CreateInstance(member.MemberType)!;
+            var list = (IList)Activator.CreateInstance(listType)!;
             var length = member.FixedLength.Value;
 
             for (int i = 0; i < length; i++)
