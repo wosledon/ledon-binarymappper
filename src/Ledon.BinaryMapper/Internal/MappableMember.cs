@@ -2,9 +2,10 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using Ledon.BinaryMapper;
 using Ledon.BinaryMapper.Attributes;
 
-namespace Ledon.BinaryMapper;
+namespace Ledon.BinaryMapper.Internal;
 
 /// <summary>
 /// 表示映射过程中的元数据。<br/>

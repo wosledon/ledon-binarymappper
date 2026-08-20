@@ -1,4 +1,7 @@
 using System;
+using Ledon.BinaryMapper.Internal;
+using BinWriter = Ledon.BinaryMapper.IO.BinaryWriter;
+using BinReader = Ledon.BinaryMapper.IO.BinaryReader;
 
 namespace Ledon.BinaryMapper;
 
@@ -16,7 +19,7 @@ public static class BinaryMapper
     {
         ArgumentNullException.ThrowIfNull(obj);
         settings ??= new BinaryMapperSettings();
-        var writer = new BinaryWriter();
+        var writer = new BinWriter();
         BinaryMapperHelpers.WriteObject(writer, obj, obj.GetType(), settings);
         return writer.ToArray();
     }

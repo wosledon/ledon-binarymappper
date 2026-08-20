@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 
-namespace Ledon.BinaryMapper;
+namespace Ledon.BinaryMapper.Internal;
 
 /// <summary>
 /// 提供类型映射成员的缓存。<br/>

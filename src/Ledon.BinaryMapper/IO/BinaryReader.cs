@@ -3,8 +3,9 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using Ledon.BinaryMapper;
 
-namespace Ledon.BinaryMapper;
+namespace Ledon.BinaryMapper.IO;
 
 /// <summary>
 /// 提供从二进制数据读取基础值类型的工具。<br/>

@@ -3,8 +3,11 @@ using System.Buffers.Binary;
 using System.Collections;
 using System.Reflection;
 using System.Text;
+using Ledon.BinaryMapper;
+using BinWriter = Ledon.BinaryMapper.IO.BinaryWriter;
+using BinReader = Ledon.BinaryMapper.IO.BinaryReader;
 
-namespace Ledon.BinaryMapper;
+namespace Ledon.BinaryMapper.Internal;
 
 /// <summary>
 /// 提供二进制序列化/反序列化的内部辅助方法。<br/>
@@ -54,7 +57,8 @@ internal static class BinaryMapperHelpers
             return array;
         }
 
-        if (typeof(IList).IsAssignableFrom(member.MemberType) && member.MemberType != typeof(string))
+        if (member.MemberType != typeof(string) && (typeof(IList).IsAssignableFrom(member.MemberType) ||
+            (member.MemberType.IsGenericType && member.MemberType.GetGenericTypeDefinition() == typeof(IList<>))))
         {
             Type? listType = null;
             Type elementType;
@@ -254,7 +258,7 @@ internal static class BinaryMapperHelpers
 
     #region Serialization (BinaryWriter based)
 
-    public static void WriteObject(BinaryWriter writer, object instance, Type type, BinaryMapperSettings settings)
+    public static void WriteObject(BinWriter writer, object instance, Type type, BinaryMapperSettings settings)
     {
         foreach (var member in BinaryMapperCache.GetMappableMembers(type))
         {
@@ -265,7 +269,7 @@ internal static class BinaryMapperHelpers
         }
     }
 
-    public static void WriteMember(BinaryWriter writer, MappableMember member, object instance, BinaryMapperSettings settings)
+    public static void WriteMember(BinWriter writer, MappableMember member, object instance, BinaryMapperSettings settings)
     {
         var value = member.GetValue(instance);
         if (value == null)
@@ -310,7 +314,7 @@ internal static class BinaryMapperHelpers
         throw new BinaryMapperException($"不支持序列化类型 '{member.MemberType.FullName}'。");
     }
 
-    public static bool TryWriteBinaryType(BinaryWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
+    public static bool TryWriteBinaryType(BinWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
     {
         return value switch
         {
@@ -334,7 +338,7 @@ internal static class BinaryMapperHelpers
     /// 写入单个元素值（用于数组/IList/CArray 的元素级分发）。<br/>
     /// Writes a single element value (element-level dispatch for arrays/IList/CArray).
     /// </summary>
-    private static void WriteElement(BinaryWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
+    private static void WriteElement(BinWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
     {
         if (member.MemberType == typeof(string))
         {
@@ -357,7 +361,7 @@ internal static class BinaryMapperHelpers
         throw new BinaryMapperException($"不支持序列化类型 '{member.MemberType.FullName}'。");
     }
 
-    public static bool TryWritePrimitive(BinaryWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
+    public static bool TryWritePrimitive(BinWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
     {
         var underlyingType = Nullable.GetUnderlyingType(member.MemberType) ?? member.MemberType;
 
@@ -392,7 +396,7 @@ internal static class BinaryMapperHelpers
         return false;
     }
 
-    public static void WriteString(BinaryWriter writer, string value, MappableMember member, BinaryMapperSettings settings)
+    public static void WriteString(BinWriter writer, string value, MappableMember member, BinaryMapperSettings settings)
     {
         var encoding = member.Encoding ?? settings.Encoding;
 
@@ -558,73 +562,73 @@ internal static class BinaryMapperHelpers
         return trimmed;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, short value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, short value, Endianness endianness)
     {
         writer.WriteInt16(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, ushort value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, ushort value, Endianness endianness)
     {
         writer.WriteUInt16(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, int value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, int value, Endianness endianness)
     {
         writer.WriteInt32(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, uint value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, uint value, Endianness endianness)
     {
         writer.WriteUInt32(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, long value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, long value, Endianness endianness)
     {
         writer.WriteInt64(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, ulong value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, ulong value, Endianness endianness)
     {
         writer.WriteUInt64(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, byte value)
+    private static bool WriteAndReturnTrue(BinWriter writer, byte value)
     {
         writer.WriteByte(value);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, sbyte value)
+    private static bool WriteAndReturnTrue(BinWriter writer, sbyte value)
     {
         writer.WriteSByte(value);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, float value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, float value, Endianness endianness)
     {
         writer.WriteSingle(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, double value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, double value, Endianness endianness)
     {
         writer.WriteDouble(value, endianness);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, bool value)
+    private static bool WriteAndReturnTrue(BinWriter writer, bool value)
     {
         writer.WriteBoolean(value);
         return true;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, char value, Endianness endianness)
+    private static bool WriteAndReturnTrue(BinWriter writer, char value, Endianness endianness)
     {
         writer.WriteChar(value, endianness);
         return true;

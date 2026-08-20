@@ -1,10 +1,10 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Ledon.BinaryMapper.NewtonsoftJson/Ledon.BinaryMapper.NewtonsoftJson.csproj" />
-    <Project Path="src/Ledon.BinaryMapper.SystemTextJson/Ledon.BinaryMapper.SystemTextJson.csproj" />
     <Project Path="src/Ledon.BinaryMapper/Ledon.BinaryMapper.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Ledon.BinaryMapper.Benchmarks/Ledon.BinaryMapper.Benchmarks.csproj" />
     <Project Path="tests/Ledon.BinaryMapper.SmokeTests/Ledon.BinaryMapper.SmokeTests.csproj" />
+    <Project Path="tests/Ledon.BinaryMapper.Tests/Ledon.BinaryMapper.Tests.csproj" />
   </Folder>
 </Solution>

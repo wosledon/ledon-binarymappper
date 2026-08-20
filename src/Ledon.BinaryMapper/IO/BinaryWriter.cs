@@ -2,8 +2,9 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
+using Ledon.BinaryMapper;
 
-namespace Ledon.BinaryMapper;
+namespace Ledon.BinaryMapper.IO;
 
 /// <summary>
 /// 提供将基础值类型写入二进制数据的工具。<br/>

@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ledon.BinaryMapper.Tests" />
+    <InternalsVisibleTo Include="Ledon.BinaryMapper.Benchmarks" />
+  </ItemGroup>
+
 </Project>
