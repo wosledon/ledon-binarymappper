@@ -149,6 +149,26 @@ internal sealed class BinaryWriter
         _stream.Write(buffer);
     }
 
+    public void WriteHalf(Half value, Endianness endianness)
+    {
+        Span<byte> buffer = stackalloc byte[sizeof(short)];
+        BinaryPrimitives.WriteHalfBigEndian(buffer, value);
+
+        if (endianness != Endianness.BigEndian)
+        {
+            buffer.Reverse();
+        }
+
+        _stream.Write(buffer);
+    }
+
+    public void WriteGuid(Guid value)
+    {
+        Span<byte> buffer = stackalloc byte[16];
+        value.TryWriteBytes(buffer, bigEndian: true, out _);
+        _stream.Write(buffer);
+    }
+
     public void WriteBytes(byte[] buffer, int offset, int count)
     {
         _stream.Write(buffer, offset, count);

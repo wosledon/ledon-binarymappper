@@ -65,6 +65,8 @@ internal static class BinaryMapperHelpers
             return ReadByte(data, ref position);
         if (underlyingType == typeof(sbyte))
             return (sbyte)ReadByte(data, ref position);
+        if (underlyingType == typeof(Half))
+            return ReadHalf(data, ref position, member.Endianness);
         if (underlyingType == typeof(float))
             return ReadSingle(data, ref position, member.Endianness);
         if (underlyingType == typeof(double))
@@ -98,6 +100,18 @@ internal static class BinaryMapperHelpers
         if (member.MemberType == typeof(CString))
         {
             value = new CString((string)ReadString(data, ref position, member, null!));
+            return true;
+        }
+
+        if (member.MemberType == typeof(CHalf))
+        {
+            value = new CHalf(ReadHalf(data, ref position, member.Endianness));
+            return true;
+        }
+
+        if (member.MemberType == typeof(CGuid))
+        {
+            value = new CGuid(ReadGuid(data, ref position));
             return true;
         }
 
@@ -243,6 +257,8 @@ internal static class BinaryMapperHelpers
             double d => WriteAndReturnTrue(writer, d, member.Endianness),
             bool flag => WriteAndReturnTrue(writer, flag),
             char c => WriteAndReturnTrue(writer, c, member.Endianness),
+            CHalf h => WriteAndReturnTrue(writer, h, member.Endianness),
+            CGuid g => WriteAndReturnTrue(writer, g),
             _ => false
         };
     }
@@ -263,6 +279,8 @@ internal static class BinaryMapperHelpers
         if (underlyingType == typeof(double)) { writer.WriteDouble((double)value, member.Endianness); return true; }
         if (underlyingType == typeof(bool)) { writer.WriteBoolean((bool)value); return true; }
         if (underlyingType == typeof(char)) { writer.WriteChar((char)value, member.Endianness); return true; }
+        if (underlyingType == typeof(Half)) { writer.WriteHalf((Half)value, member.Endianness); return true; }
+        if (underlyingType == typeof(Guid)) { writer.WriteGuid((Guid)value); return true; }
 
         if (underlyingType.IsEnum)
         {
@@ -358,6 +376,16 @@ internal static class BinaryMapperHelpers
         return endianness == Endianness.BigEndian ? value : BinaryPrimitives.ReverseEndianness(value);
     }
 
+    public static Half ReadHalf(ReadOnlySpan<byte> data, ref int position, Endianness endianness)
+    {
+        var span = Slice(data, ref position, sizeof(short));
+        Span<byte> tmp = stackalloc byte[sizeof(short)];
+        span.CopyTo(tmp);
+        if (endianness != Endianness.BigEndian)
+            tmp.Reverse();
+        return BinaryPrimitives.ReadHalfBigEndian(tmp);
+    }
+
     public static float ReadSingle(ReadOnlySpan<byte> data, ref int position, Endianness endianness)
     {
         var span = Slice(data, ref position, sizeof(float));
@@ -374,6 +402,12 @@ internal static class BinaryMapperHelpers
         if (endianness != Endianness.BigEndian)
             longBits = BinaryPrimitives.ReverseEndianness(longBits);
         return BitConverter.Int64BitsToDouble(longBits);
+    }
+
+    public static Guid ReadGuid(ReadOnlySpan<byte> data, ref int position)
+    {
+        var buffer = ReadBytes(data, ref position, 16);
+        return new Guid(buffer, bigEndian: true);
     }
 
     public static byte[] ReadBytes(ReadOnlySpan<byte> data, ref int position, int count)
@@ -505,6 +539,18 @@ internal static class BinaryMapperHelpers
     private static bool WriteAndReturnTrue(BinaryWriter writer, char value, Endianness endianness)
     {
         writer.WriteChar(value, endianness);
+        return true;
+    }
+
+    private static bool WriteAndReturnTrue(BinaryWriter writer, CHalf value, Endianness endianness)
+    {
+        writer.WriteHalf(value.Value, endianness);
+        return true;
+    }
+
+    private static bool WriteAndReturnTrue(BinaryWriter writer, CGuid value)
+    {
+        writer.WriteGuid(value.Value);
         return true;
     }
 
