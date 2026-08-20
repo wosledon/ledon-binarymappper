@@ -109,6 +109,9 @@ internal static class BinaryMapperHelpers
         if (underlyingType == typeof(char))
             return (char)ReadUInt16(data, ref position, member.Endianness);
 
+        if (underlyingType == typeof(Guid))
+            return ReadGuid(data, ref position);
+
         if (underlyingType.IsEnum)
         {
             var enumUnderlying = Enum.GetUnderlyingType(underlyingType);
@@ -129,24 +132,6 @@ internal static class BinaryMapperHelpers
     public static bool TryReadBinaryType(ReadOnlySpan<byte> data, ref int position, MappableMember member, BinaryMapperSettings settings, out object? value)
     {
         value = null!;
-
-        if (member.MemberType == typeof(CString))
-        {
-            value = new CString((string)ReadString(data, ref position, member, null!));
-            return true;
-        }
-
-        if (member.MemberType == typeof(CHalf))
-        {
-            value = new CHalf(ReadHalf(data, ref position, member.Endianness));
-            return true;
-        }
-
-        if (member.MemberType == typeof(CGuid))
-        {
-            value = new CGuid(ReadGuid(data, ref position));
-            return true;
-        }
 
         if (member.MemberType.IsGenericType && member.MemberType.GetGenericTypeDefinition() == typeof(CArray<>))
         {
@@ -325,7 +310,6 @@ internal static class BinaryMapperHelpers
 
         return value switch
         {
-            CString cstring => WriteAndReturnTrue(writer, cstring, member, settings),
             short s => WriteAndReturnTrue(writer, s, member.Endianness),
             ushort us => WriteAndReturnTrue(writer, us, member.Endianness),
             int i => WriteAndReturnTrue(writer, i, member.Endianness),
@@ -338,8 +322,6 @@ internal static class BinaryMapperHelpers
             double d => WriteAndReturnTrue(writer, d, member.Endianness),
             bool flag => WriteAndReturnTrue(writer, flag),
             char c => WriteAndReturnTrue(writer, c, member.Endianness),
-            CHalf h => WriteAndReturnTrue(writer, h, member.Endianness),
-            CGuid g => WriteAndReturnTrue(writer, g),
             _ => false
         };
     }
@@ -572,12 +554,6 @@ internal static class BinaryMapperHelpers
         return trimmed;
     }
 
-    private static bool WriteAndReturnTrue(BinaryWriter writer, CString cstring, MappableMember member, BinaryMapperSettings settings)
-    {
-        WriteString(writer, cstring.Value, member, settings);
-        return true;
-    }
-
     private static bool WriteAndReturnTrue(BinaryWriter writer, short value, Endianness endianness)
     {
         writer.WriteInt16(value, endianness);
@@ -647,18 +623,6 @@ internal static class BinaryMapperHelpers
     private static bool WriteAndReturnTrue(BinaryWriter writer, char value, Endianness endianness)
     {
         writer.WriteChar(value, endianness);
-        return true;
-    }
-
-    private static bool WriteAndReturnTrue(BinaryWriter writer, CHalf value, Endianness endianness)
-    {
-        writer.WriteHalf(value.Value, endianness);
-        return true;
-    }
-
-    private static bool WriteAndReturnTrue(BinaryWriter writer, CGuid value)
-    {
-        writer.WriteGuid(value.Value);
         return true;
     }
 

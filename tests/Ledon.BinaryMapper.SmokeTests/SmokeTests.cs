@@ -1,6 +1,5 @@
 using System;
 using Ledon.BinaryMapper;
-using Ledon.BinaryMapper.BinaryTypes;
 
 namespace Ledon.BinaryMapper.SmokeTests;
 
@@ -25,26 +24,26 @@ public static class SmokeTests
 
         var packet = BinaryMapper.Deserialize<FixedStringPacket>(payload);
 
-        if (packet.Id.Value != 1)
-            throw new Exception($"Expected Id=1, got {packet.Id.Value}");
+        if (packet.Id != 1)
+            throw new Exception($"Expected Id=1, got {packet.Id}");
 
-        if (packet.Name.Value != "BOB")
-            throw new Exception($"Expected Name=BOB, got '{packet.Name.Value}'");
+        if (packet.Name != "BOB")
+            throw new Exception($"Expected Name=BOB, got '{packet.Name}'");
 
-        if (Math.Abs(packet.Temperature.Value - 20.0f) > 1e-3f)
-            throw new Exception($"Expected Temperature=20.0, got {packet.Temperature.Value}");
+        if (Math.Abs(packet.Temperature - 20.0f) > 1e-3f)
+            throw new Exception($"Expected Temperature=20.0, got {packet.Temperature}");
 
         var settings = new BinaryMapperSettings();
         var bytes = BinaryMapper.Serialize(packet, settings);
         var roundTrip = BinaryMapper.Deserialize<FixedStringPacket>(bytes, settings);
 
-        if (roundTrip.Id.Value != packet.Id.Value)
+        if (roundTrip.Id != packet.Id)
             throw new Exception("Round-trip Id mismatch");
 
-        if (roundTrip.Name.Value != packet.Name.Value)
+        if (roundTrip.Name != packet.Name)
             throw new Exception("Round-trip Name mismatch");
 
-        if (Math.Abs(roundTrip.Temperature.Value - packet.Temperature.Value) > 1e-3f)
+        if (Math.Abs(roundTrip.Temperature - packet.Temperature) > 1e-3f)
             throw new Exception("Round-trip Temperature mismatch");
     }
 
@@ -60,27 +59,27 @@ public static class SmokeTests
         // Test ReadOnlySpan<byte> deserialization
         var packet = BinaryMapper.Deserialize<FixedStringPacket>((ReadOnlySpan<byte>)payload);
 
-        if (packet.Id.Value != 1)
-            throw new Exception($"Span: Expected Id=1, got {packet.Id.Value}");
+        if (packet.Id != 1)
+            throw new Exception($"Span: Expected Id=1, got {packet.Id}");
 
-        if (packet.Name.Value != "BOB")
-            throw new Exception($"Span: Expected Name=BOB, got '{packet.Name.Value}'");
+        if (packet.Name != "BOB")
+            throw new Exception($"Span: Expected Name=BOB, got '{packet.Name}'");
 
-        if (Math.Abs(packet.Temperature.Value - 20.0f) > 1e-3f)
-            throw new Exception($"Span: Expected Temperature=20.0, got {packet.Temperature.Value}");
+        if (Math.Abs(packet.Temperature - 20.0f) > 1e-3f)
+            throw new Exception($"Span: Expected Temperature=20.0, got {packet.Temperature}");
 
         // Test round-trip via Span deserialization
         var settings = new BinaryMapperSettings();
         var bytes = BinaryMapper.Serialize(packet, settings);
         var roundTrip = BinaryMapper.Deserialize<FixedStringPacket>((ReadOnlySpan<byte>)bytes, settings);
 
-        if (roundTrip.Id.Value != packet.Id.Value)
+        if (roundTrip.Id != packet.Id)
             throw new Exception("Span round-trip Id mismatch");
 
-        if (roundTrip.Name.Value != packet.Name.Value)
+        if (roundTrip.Name != packet.Name)
             throw new Exception("Span round-trip Name mismatch");
 
-        if (Math.Abs(roundTrip.Temperature.Value - packet.Temperature.Value) > 1e-3f)
+        if (Math.Abs(roundTrip.Temperature - packet.Temperature) > 1e-3f)
             throw new Exception("Span round-trip Temperature mismatch");
     }
 

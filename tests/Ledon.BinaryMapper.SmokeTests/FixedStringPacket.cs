@@ -1,14 +1,13 @@
 using Ledon.BinaryMapper.Attributes;
-using Ledon.BinaryMapper.BinaryTypes;
 
 namespace Ledon.BinaryMapper.SmokeTests;
 
 public class FixedStringPacket
 {
-    public CInt Id { get; set; }
+    public int Id { get; set; }
 
     [FixedLength(4)]
-    public CString Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
-    public CFloat Temperature { get; set; }
+    public float Temperature { get; set; }
 }
