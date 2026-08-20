@@ -106,6 +106,9 @@ internal static class BinaryMapperHelpers
         if (TryReadBinaryType(data, ref position, member, settings, out var binaryValue))
             return binaryValue;
 
+        if (member.MemberType.IsClass && member.MemberType != typeof(string))
+            return ReadObject(data, ref position, member.MemberType, settings);
+
         return ReadPrimitive(data, ref position, member, settings);
     }
 

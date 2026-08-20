@@ -16,21 +16,28 @@ internal sealed class MappableMember
     {
         Member = member;
         MemberType = memberType;
+        _isIgnored = member.GetCustomAttribute<IgnoreAttribute>() != null;
+        _fixedLength = member.GetCustomAttribute<FixedLengthAttribute>()?.Length;
+        _nullTerminated = member.GetCustomAttribute<NullTerminatedAttribute>() != null;
+        _encoding = ResolveEncoding(member.GetCustomAttribute<EncodingAttribute>()?.Name);
+        _endianness = ResolveEndianness(member);
     }
 
     public MemberInfo Member { get; }
 
     public Type MemberType { get; }
 
-    public bool IsIgnored => Member.GetCustomAttribute<IgnoreAttribute>() != null;
+    private readonly bool _isIgnored;
+    private readonly int? _fixedLength;
+    private readonly bool _nullTerminated;
+    private readonly Encoding? _encoding;
+    private readonly Endianness _endianness;
 
-    public int? FixedLength => Member.GetCustomAttribute<FixedLengthAttribute>()?.Length;
-
-    public bool NullTerminated => Member.GetCustomAttribute<NullTerminatedAttribute>() != null;
-
-    public Encoding? Encoding => ResolveEncoding(Member.GetCustomAttribute<EncodingAttribute>()?.Name);
-
-    public Endianness Endianness => ResolveEndianness(Member);
+    public bool IsIgnored => _isIgnored;
+    public int? FixedLength => _fixedLength;
+    public bool NullTerminated => _nullTerminated;
+    public Encoding? Encoding => _encoding;
+    public Endianness Endianness => _endianness;
 
     public void SetValue(object instance, object? value)
     {
