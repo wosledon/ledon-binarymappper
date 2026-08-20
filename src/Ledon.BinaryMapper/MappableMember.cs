@@ -24,8 +24,6 @@ internal sealed class MappableMember
 
     public bool IsIgnored => Member.GetCustomAttribute<IgnoreAttribute>() != null;
 
-    public int? Offset => Member.GetCustomAttribute<OffsetAttribute>()?.OffsetValue;
-
     public int? FixedLength => Member.GetCustomAttribute<FixedLengthAttribute>()?.Length;
 
     public bool NullTerminated => Member.GetCustomAttribute<NullTerminatedAttribute>() != null;
