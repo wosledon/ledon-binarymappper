@@ -3,8 +3,6 @@ using System.Buffers.Binary;
 using System.Collections;
 using System.Reflection;
 using System.Text;
-using Ledon.BinaryMapper.Attributes;
-using Ledon.BinaryMapper.BinaryTypes;
 
 namespace Ledon.BinaryMapper;
 
@@ -132,24 +130,6 @@ internal static class BinaryMapperHelpers
     public static bool TryReadBinaryType(ReadOnlySpan<byte> data, ref int position, MappableMember member, BinaryMapperSettings settings, out object? value)
     {
         value = null!;
-
-        if (member.MemberType.IsGenericType && member.MemberType.GetGenericTypeDefinition() == typeof(CArray<>))
-        {
-            if (!member.FixedLength.HasValue)
-                throw new BinaryMapperException("CArray 必须指定 [FixedLength]。");
-
-            var elementType = member.MemberType.GetGenericArguments()[0];
-            var elementMember = member.WithType(elementType);
-            var length = member.FixedLength.Value;
-            var array = Array.CreateInstance(elementType, length);
-
-            for (int i = 0; i < length; i++)
-                array.SetValue(ReadMember(data, ref position, elementMember, settings), i);
-
-            var cArrayType = typeof(CArray<>).MakeGenericType(elementType);
-            value = Activator.CreateInstance(cArrayType, [array])!;
-            return true;
-        }
 
         if (member.MemberType == typeof(short))
         {
@@ -296,18 +276,6 @@ internal static class BinaryMapperHelpers
 
     public static bool TryWriteBinaryType(BinaryWriter writer, object value, MappableMember member, BinaryMapperSettings settings)
     {
-        // Handle CArray<T> before the switch
-        var valueType = value.GetType();
-        if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(CArray<>))
-        {
-            var array = (Array)valueType.GetProperty("Value")!.GetValue(value)!;
-            var elementType = valueType.GetGenericArguments()[0];
-            var elementMember = member.WithType(elementType);
-            for (int i = 0; i < array.Length; i++)
-                WriteElement(writer, array.GetValue(i)!, elementMember, settings);
-            return true;
-        }
-
         return value switch
         {
             short s => WriteAndReturnTrue(writer, s, member.Endianness),
