@@ -23,6 +23,7 @@ internal sealed class MappableMember
         _nullTerminated = member.GetCustomAttribute<NullTerminatedAttribute>() != null;
         _encoding = ResolveEncoding(member.GetCustomAttribute<EncodingAttribute>()?.Name);
         _endianness = ResolveEndianness(member);
+        _bitLength = member.GetCustomAttribute<BitFieldAttribute>()?.Length;
         TryCompileAccessors(member, memberType);
     }
 
@@ -35,6 +36,7 @@ internal sealed class MappableMember
     private readonly bool _nullTerminated;
     private readonly Encoding? _encoding;
     private readonly Endianness _endianness;
+    private readonly int? _bitLength;
     private Func<object, object?>? _getter;
     private Action<object, object?>? _setter;
 
@@ -43,6 +45,7 @@ internal sealed class MappableMember
     public bool NullTerminated => _nullTerminated;
     public Encoding? Encoding => _encoding;
     public Endianness Endianness => _endianness;
+    public int? BitLength => _bitLength;
 
     public void SetValue(object instance, object? value)
     {

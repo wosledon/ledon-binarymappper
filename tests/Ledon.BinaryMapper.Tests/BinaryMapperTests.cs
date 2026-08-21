@@ -364,4 +364,63 @@ public class BinaryMapperTests
     }
 
     #endregion
+
+    #region Bit Fields
+
+    [Fact]
+    public void Serialize_Deserialize_BitField_RoundTrip()
+    {
+        var original = new BitFieldPacket
+        {
+            FlagA = true,
+            Value = 5,    // 3 bits: 101
+            FlagB = false,
+            Tail = 0xAB
+        };
+
+        var data = BinaryMapper.Serialize(original);
+        var restored = BinaryMapper.Deserialize<BitFieldPacket>(data);
+
+        Assert.True(restored.FlagA);
+        Assert.Equal(5, restored.Value);
+        Assert.False(restored.FlagB);
+        Assert.Equal(0xAB, restored.Tail);
+    }
+
+    [Fact]
+    public void Deserialize_BitField_KnownBytes()
+    {
+        // byte 0: bits [0]=1, [1-3]=101, [4]=0  =>  0b00001011 = 0x0B
+        // byte 1: 0xAB
+        var data = new byte[] { 0x0B, 0xAB };
+
+        var p = BinaryMapper.Deserialize<BitFieldPacket>(data);
+
+        Assert.True(p.FlagA);
+        Assert.Equal(5, p.Value);
+        Assert.False(p.FlagB);
+        Assert.Equal(0xAB, p.Tail);
+    }
+
+    [Fact]
+    public void Serialize_BitField_ProducesCorrectBytes()
+    {
+        var packet = new BitFieldPacket
+        {
+            FlagA = true,
+            Value = 5,
+            FlagB = false,
+            Tail = 0xAB
+        };
+
+        var data = BinaryMapper.Serialize(packet);
+
+        // byte 0: 0b00001011 = 0x0B
+        // byte 1: 0xAB
+        Assert.Equal(2, data.Length);
+        Assert.Equal(0x0B, data[0]);
+        Assert.Equal(0xAB, data[1]);
+    }
+
+    #endregion
 }

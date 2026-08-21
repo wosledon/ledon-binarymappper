@@ -79,3 +79,17 @@ public class IgnorePacket
     [Ignore]
     public string Temp { get; set; } = string.Empty;
 }
+
+public class BitFieldPacket
+{
+    [BitField(1)]
+    public bool FlagA { get; set; }
+
+    [BitField(3)]
+    public byte Value { get; set; }
+
+    [BitField(1)]
+    public bool FlagB { get; set; }
+
+    public byte Tail { get; set; }
+}

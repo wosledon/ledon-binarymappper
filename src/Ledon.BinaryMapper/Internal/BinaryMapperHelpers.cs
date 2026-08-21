@@ -26,13 +26,46 @@ internal static class BinaryMapperHelpers
 
     public static void ReadObjectCore(ReadOnlySpan<byte> data, ref int position, object instance, Type type, BinaryMapperSettings settings)
     {
-        foreach (var member in BinaryMapperCache.GetMappableMembers(type))
+        var members = BinaryMapperCache.GetMappableMembers(type);
+        int i = 0;
+        while (i < members.Length)
         {
-            if (member.IsIgnored)
-                continue;
+            var member = members[i];
+            if (member.IsIgnored) { i++; continue; }
 
-            var value = ReadMember(data, ref position, member, settings);
-            member.SetValue(instance, value);
+            if (member.BitLength.HasValue)
+            {
+                // Read the containing byte, extract bits for consecutive bit fields
+                var byteVal = ReadByte(data, ref position);
+                var byteStartBit = 0;
+
+                while (i < members.Length && members[i].BitLength.HasValue && byteStartBit < 8)
+                {
+                    var m = members[i];
+                    if (!m.IsIgnored)
+                    {
+                        var bits = m.BitLength!.Value;
+                        var remaining = 8 - byteStartBit;
+                        var take = Math.Min(bits, remaining);
+                        var mask = (1 << take) - 1;
+                        var rawValue = (byte)((byteVal >> byteStartBit) & mask);
+                        var targetType = Nullable.GetUnderlyingType(m.MemberType) ?? m.MemberType;
+                        // Handle bool specially: non-zero = true
+                        var converted = targetType == typeof(bool)
+                            ? (object)(rawValue != 0)
+                            : Convert.ChangeType(rawValue, targetType);
+                        m.SetValue(instance, converted);
+                        byteStartBit += take;
+                    }
+                    i++;
+                }
+            }
+            else
+            {
+                var value = ReadMember(data, ref position, member, settings);
+                member.SetValue(instance, value);
+                i++;
+            }
         }
     }
 
@@ -242,12 +275,40 @@ internal static class BinaryMapperHelpers
 
     public static void WriteObject(BinWriter writer, object instance, Type type, BinaryMapperSettings settings)
     {
-        foreach (var member in BinaryMapperCache.GetMappableMembers(type))
+        var members = BinaryMapperCache.GetMappableMembers(type);
+        int i = 0;
+        while (i < members.Length)
         {
-            if (member.IsIgnored)
-                continue;
+            var member = members[i];
+            if (member.IsIgnored) { i++; continue; }
 
-            WriteMember(writer, member, instance, settings);
+            if (member.BitLength.HasValue)
+            {
+                byte byteVal = 0;
+                var bitPos = 0;
+
+                while (i < members.Length && members[i].BitLength.HasValue && bitPos < 8)
+                {
+                    var m = members[i];
+                    if (!m.IsIgnored)
+                    {
+                        var bits = m.BitLength!.Value;
+                        var remaining = 8 - bitPos;
+                        var take = Math.Min(bits, remaining);
+                        var rawValue = Convert.ToByte(m.GetValue(instance)!);
+                        byteVal |= (byte)((rawValue & ((1 << take) - 1)) << bitPos);
+                        bitPos += take;
+                    }
+                    i++;
+                }
+
+                writer.WriteByte(byteVal);
+            }
+            else
+            {
+                WriteMember(writer, member, instance, settings);
+                i++;
+            }
         }
     }
 
