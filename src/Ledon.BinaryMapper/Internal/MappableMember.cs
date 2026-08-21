@@ -35,8 +35,8 @@ internal sealed class MappableMember
     private readonly bool _nullTerminated;
     private readonly Encoding? _encoding;
     private readonly Endianness _endianness;
-    private Func<object, object?> _getter;
-    private Action<object, object?> _setter;
+private Func<object, object?>? _getter;
+private Action<object, object?>? _setter;
 
     public bool IsIgnored => _isIgnored;
     public int? FixedLength => _fixedLength;
@@ -85,8 +85,8 @@ internal sealed class MappableMember
         // For element types that differ from the declared member type,
         // compiled getter/setter would produce invalid assignments,
         // so skip compilation — reflection fallback handles them.
-        m._getter = null;
-        m._setter = null;
+        m._getter = null!;
+        m._setter = null!;
         return m;
     }
 
