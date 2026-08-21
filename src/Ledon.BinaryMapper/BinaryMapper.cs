@@ -19,7 +19,7 @@ public static class BinaryMapper
     {
         ArgumentNullException.ThrowIfNull(obj);
         settings ??= new BinaryMapperSettings();
-        var writer = new BinWriter();
+        using var writer = new BinWriter();
         BinaryMapperHelpers.WriteObject(writer, obj, obj.GetType(), settings);
         return writer.ToArray();
     }

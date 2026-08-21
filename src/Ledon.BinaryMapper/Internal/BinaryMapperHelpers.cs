@@ -19,7 +19,7 @@ internal static class BinaryMapperHelpers
 
     public static object ReadObject(ReadOnlySpan<byte> data, ref int position, Type type, BinaryMapperSettings settings)
     {
-        var instance = Activator.CreateInstance(type)!;
+        var instance = BinaryMapperCache.CreateInstance(type);
         ReadObjectCore(data, ref position, instance, type, settings);
         return instance;
     }
@@ -80,7 +80,7 @@ internal static class BinaryMapperHelpers
                 throw new BinaryMapperException($"数组 '{member.MemberType.Name}' 必须指定 [FixedLength]。");
 
             var elementType = member.MemberType.GetElementType()!;
-            var elementMember = member.WithType(elementType);
+            var elementMember = BinaryMapperCache.GetElementMember(member, elementType);
             var length = member.FixedLength.Value;
             var array = Array.CreateInstance(elementType, length);
 
@@ -130,8 +130,8 @@ internal static class BinaryMapperHelpers
             if (!member.FixedLength.HasValue)
                 throw new BinaryMapperException($"IList '{member.MemberType.Name}' 必须指定 [FixedLength]。");
 
-            var elementMember = member.WithType(elementType);
-            var list = (IList)Activator.CreateInstance(listType)!;
+            var elementMember = BinaryMapperCache.GetElementMember(member, elementType);
+            var list = (IList)BinaryMapperCache.CreateInstance(listType);
             var length = member.FixedLength.Value;
 
             for (int i = 0; i < length; i++)
@@ -156,13 +156,13 @@ internal static class BinaryMapperHelpers
         if (underlyingType.IsEnum)
         {
             var enumUnderlying = Enum.GetUnderlyingType(underlyingType);
-            var enumValue = ReadMember(data, ref position, member.WithType(enumUnderlying), settings);
+            var enumValue = ReadMember(data, ref position, BinaryMapperCache.GetElementMember(member, enumUnderlying), settings);
             return Enum.ToObject(underlyingType, enumValue!);
         }
 
         if (underlyingType.IsValueType)
         {
-            var nestedInstance = Activator.CreateInstance(underlyingType)!;
+            var nestedInstance = BinaryMapperCache.CreateInstance(underlyingType);
             ReadObjectCore(data, ref position, nestedInstance, underlyingType, settings);
             return nestedInstance;
         }
@@ -333,7 +333,7 @@ internal static class BinaryMapperHelpers
         if (value is Array array)
         {
             var elementType = value.GetType().GetElementType()!;
-            var elementMember = member.WithType(elementType);
+            var elementMember = BinaryMapperCache.GetElementMember(member, elementType);
             for (int i = 0; i < array.Length; i++)
                 WriteElement(writer, array.GetValue(i)!, elementMember, settings);
             return;
@@ -342,7 +342,7 @@ internal static class BinaryMapperHelpers
         if (value is IList list)
         {
             var elementType = value.GetType().GetGenericArguments()[0];
-            var elementMember = member.WithType(elementType);
+            var elementMember = BinaryMapperCache.GetElementMember(member, elementType);
             for (int i = 0; i < list.Count; i++)
                 WriteElement(writer, list[i]!, elementMember, settings);
             return;
