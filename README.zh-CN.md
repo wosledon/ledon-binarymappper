@@ -91,14 +91,14 @@ var data = BinaryMapper.Serialize(obj, settings);
 
 ## 特性
 
-| 特性 | 说明 |
-|------|------|
-| `[FixedLength(n)]` | 字符串/数组/集合的固定长度 |
-| `[NullTerminated]` | null 结尾字符串 |
-| `[Encoding("ascii")]` | 字符串编码 |
-| `[BigEndian]` / `[LittleEndian]` | 成员级字节序 |
-| `[Ignore]` | 映射时跳过该字段 |
-| `[BitField(n)]` | 打包到字节中的 n 位 |
+| 特性                             | 说明                       |
+| -------------------------------- | -------------------------- |
+| `[FixedLength(n)]`               | 字符串/数组/集合的固定长度 |
+| `[NullTerminated]`               | null 结尾字符串            |
+| `[Encoding("ascii")]`            | 字符串编码                 |
+| `[BigEndian]` / `[LittleEndian]` | 成员级字节序               |
+| `[Ignore]`                       | 映射时跳过该字段           |
+| `[BitField(n)]`                  | 打包到字节中的 n 位        |
 
 ### 示例
 
@@ -146,11 +146,11 @@ public class Outer { public Inner Inner { get; set; } = new(); public int Y { ge
 
 > 使用 BenchmarkDotNet 测量，11 字段数据包，.NET 10，Release 构建。
 
-| 操作 | 耗时 | 分配内存 |
-|------|------|---------|
-| `Serialize` | ~97 ns | ~400 B |
-| `Deserialize` (byte[]) | ~140 ns | ~360 B |
-| `Deserialize` (ReadOnlySpan) | ~139 ns | ~360 B |
+| 操作                         | 耗时    | 分配内存 |
+| ---------------------------- | ------- | -------- |
+| `Serialize`                  | ~97 ns  | ~400 B   |
+| `Deserialize` (byte[])       | ~140 ns | ~360 B   |
+| `Deserialize` (ReadOnlySpan) | ~139 ns | ~360 B   |
 
 优化手段：
 - 成员元数据缓存（`ConcurrentDictionary<Type, MappableMember[]>`）
@@ -162,25 +162,25 @@ public class Outer { public Inner Inner { get; set; } = new(); public int Y { ge
 
 ## 支持的类型
 
-| 分类 | 类型 |
-|------|------|
-| 整数 | `byte`、`sbyte`、`short`、`ushort`、`int`、`uint`、`long`、`ulong` |
-| 浮点 | `Half`、`float`、`double` |
-| 其他原始类型 | `bool`（1 字节）、`char`（2 字节）、`Guid`（16 字节） |
-| 字符串 | `string` 配合 `[FixedLength]` / `[NullTerminated]` / `[Encoding]` |
-| 枚举 | 任意枚举，按底层类型定长 |
-| 数组 | `T[]` 配合 `[FixedLength(n)]` |
-| 集合 | 实现 `IList` / `IList<T>` 的类型，配合 `[FixedLength(n)]` |
-| 对象 | 嵌套类/结构体成员 |
+| 分类         | 类型                                                               |
+| ------------ | ------------------------------------------------------------------ |
+| 整数         | `byte`、`sbyte`、`short`、`ushort`、`int`、`uint`、`long`、`ulong` |
+| 浮点         | `Half`、`float`、`double`                                          |
+| 其他原始类型 | `bool`（1 字节）、`char`（2 字节）、`Guid`（16 字节）              |
+| 字符串       | `string` 配合 `[FixedLength]` / `[NullTerminated]` / `[Encoding]`  |
+| 枚举         | 任意枚举，按底层类型定长                                           |
+| 数组         | `T[]` 配合 `[FixedLength(n)]`                                      |
+| 集合         | 实现 `IList` / `IList<T>` 的类型，配合 `[FixedLength(n)]`          |
+| 对象         | 嵌套类/结构体成员                                                  |
 
 ## 项目结构
 
-| 项目 | 说明 |
-|------|------|
-| `src/Ledon.BinaryMapper` | 核心库 |
-| `tests/Ledon.BinaryMapper.Tests` | xUnit 测试套件（22 个测试） |
-| `tests/Ledon.BinaryMapper.SmokeTests` | 控制台冒烟测试 |
-| `tests/Ledon.BinaryMapper.Benchmarks` | BenchmarkDotNet 基准测试 |
+| 项目                                  | 说明                        |
+| ------------------------------------- | --------------------------- |
+| `src/Ledon.BinaryMapper`              | 核心库                      |
+| `tests/Ledon.BinaryMapper.Tests`      | xUnit 测试套件（22 个测试） |
+| `tests/Ledon.BinaryMapper.SmokeTests` | 控制台冒烟测试              |
+| `tests/Ledon.BinaryMapper.Benchmarks` | BenchmarkDotNet 基准测试    |
 
 ## 许可证
 

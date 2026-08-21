@@ -91,14 +91,14 @@ var data = BinaryMapper.Serialize(obj, settings);
 
 ## Attributes
 
-| Attribute | Description |
-|-----------|-------------|
-| `[FixedLength(n)]` | Fixed size for strings/arrays/lists |
-| `[NullTerminated]` | Null-terminated string |
-| `[Encoding("ascii")]` | String encoding |
-| `[BigEndian]` / `[LittleEndian]` | Member-level endianness |
-| `[Ignore]` | Skip the field during mapping |
-| `[BitField(n)]` | Map to `n` bits in a packed byte |
+| Attribute                        | Description                         |
+| -------------------------------- | ----------------------------------- |
+| `[FixedLength(n)]`               | Fixed size for strings/arrays/lists |
+| `[NullTerminated]`               | Null-terminated string              |
+| `[Encoding("ascii")]`            | String encoding                     |
+| `[BigEndian]` / `[LittleEndian]` | Member-level endianness             |
+| `[Ignore]`                       | Skip the field during mapping       |
+| `[BitField(n)]`                  | Map to `n` bits in a packed byte    |
 
 ### Examples
 
@@ -146,11 +146,11 @@ public class Outer { public Inner Inner { get; set; } = new(); public int Y { ge
 
 > Benchmarked with BenchmarkDotNet on an 11-field packet, .NET 10, Release build.
 
-| Operation | Time | Allocated |
-|-----------|------|-----------|
-| `Serialize` | ~97 ns | ~400 B |
-| `Deserialize` (byte[]) | ~140 ns | ~360 B |
-| `Deserialize` (ReadOnlySpan) | ~139 ns | ~360 B |
+| Operation                    | Time    | Allocated |
+| ---------------------------- | ------- | --------- |
+| `Serialize`                  | ~97 ns  | ~400 B    |
+| `Deserialize` (byte[])       | ~140 ns | ~360 B    |
+| `Deserialize` (ReadOnlySpan) | ~139 ns | ~360 B    |
 
 Optimizations include:
 - Cached member metadata (`ConcurrentDictionary<Type, MappableMember[]>`)
@@ -162,25 +162,25 @@ Optimizations include:
 
 ## Supported Types
 
-| Category | Types |
-|----------|-------|
-| Integers | `byte`, `sbyte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong` |
-| Floating point | `Half`, `float`, `double` |
-| Other primitives | `bool` (1 byte), `char` (2 bytes), `Guid` (16 bytes) |
-| Strings | `string` with `[FixedLength]` / `[NullTerminated]` / `[Encoding]` |
-| Enums | any enum, sized by its underlying type |
-| Arrays | `T[]` with `[FixedLength(n)]` |
-| Collections | types implementing `IList` / `IList<T>` with `[FixedLength(n)]` |
-| Objects | nested class/struct members |
+| Category         | Types                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| Integers         | `byte`, `sbyte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong` |
+| Floating point   | `Half`, `float`, `double`                                          |
+| Other primitives | `bool` (1 byte), `char` (2 bytes), `Guid` (16 bytes)               |
+| Strings          | `string` with `[FixedLength]` / `[NullTerminated]` / `[Encoding]`  |
+| Enums            | any enum, sized by its underlying type                             |
+| Arrays           | `T[]` with `[FixedLength(n)]`                                      |
+| Collections      | types implementing `IList` / `IList<T>` with `[FixedLength(n)]`    |
+| Objects          | nested class/struct members                                        |
 
 ## Projects
 
-| Project | Description |
-|---------|-------------|
-| `src/Ledon.BinaryMapper` | Core library |
-| `tests/Ledon.BinaryMapper.Tests` | xUnit test suite (22 tests) |
-| `tests/Ledon.BinaryMapper.SmokeTests` | Console smoke tests |
-| `tests/Ledon.BinaryMapper.Benchmarks` | BenchmarkDotNet benchmarks |
+| Project                               | Description                 |
+| ------------------------------------- | --------------------------- |
+| `src/Ledon.BinaryMapper`              | Core library                |
+| `tests/Ledon.BinaryMapper.Tests`      | xUnit test suite (22 tests) |
+| `tests/Ledon.BinaryMapper.SmokeTests` | Console smoke tests         |
+| `tests/Ledon.BinaryMapper.Benchmarks` | BenchmarkDotNet benchmarks  |
 
 ## License
 
