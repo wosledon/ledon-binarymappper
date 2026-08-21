@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using Ledon.BinaryMapper;
@@ -22,6 +23,7 @@ internal sealed class MappableMember
         _nullTerminated = member.GetCustomAttribute<NullTerminatedAttribute>() != null;
         _encoding = ResolveEncoding(member.GetCustomAttribute<EncodingAttribute>()?.Name);
         _endianness = ResolveEndianness(member);
+        TryCompileAccessors(member, memberType);
     }
 
     public MemberInfo Member { get; }
@@ -33,6 +35,8 @@ internal sealed class MappableMember
     private readonly bool _nullTerminated;
     private readonly Encoding? _encoding;
     private readonly Endianness _endianness;
+    private Func<object, object?> _getter;
+    private Action<object, object?> _setter;
 
     public bool IsIgnored => _isIgnored;
     public int? FixedLength => _fixedLength;
@@ -42,6 +46,12 @@ internal sealed class MappableMember
 
     public void SetValue(object instance, object? value)
     {
+        if (_setter != null)
+        {
+            _setter(instance, value);
+            return;
+        }
+        // Fallback for WithType members where types don't match
         switch (Member)
         {
             case FieldInfo field:
@@ -55,6 +65,9 @@ internal sealed class MappableMember
 
     public object? GetValue(object instance)
     {
+        if (_getter != null)
+            return _getter(instance);
+        // Fallback for WithType members where types don't match
         switch (Member)
         {
             case FieldInfo field:
@@ -68,7 +81,13 @@ internal sealed class MappableMember
 
     public MappableMember WithType(Type memberType)
     {
-        return new MappableMember(Member, memberType);
+        var m = new MappableMember(Member, memberType);
+        // For element types that differ from the declared member type,
+        // compiled getter/setter would produce invalid assignments,
+        // so skip compilation — reflection fallback handles them.
+        m._getter = null;
+        m._setter = null;
+        return m;
     }
 
     public static MappableMember? Create(MemberInfo member)
@@ -94,6 +113,54 @@ internal sealed class MappableMember
     private static bool IsMappableProperty(PropertyInfo property)
     {
         return property.CanRead && property.GetMethod != null && property.GetMethod.IsPublic;
+    }
+
+    private void TryCompileAccessors(MemberInfo member, Type memberType)
+    {
+        // Only compile when the memberType matches the declared field/property type.
+        // WithType may create members where types differ, which would cause
+        // Expression.Assign to throw during compilation.
+        Type declaredType = member switch
+        {
+            FieldInfo f => f.FieldType,
+            PropertyInfo p => p.PropertyType,
+            _ => memberType
+        };
+        if (declaredType == memberType)
+        {
+            _getter = CompileGetter(member);
+            _setter = CompileSetter(member, memberType);
+        }
+    }
+
+    private static Func<object, object?> CompileGetter(MemberInfo member)
+    {
+        var instance = Expression.Parameter(typeof(object), "instance");
+        var cast = Expression.Convert(instance, member.DeclaringType!);
+        Expression access = member switch
+        {
+            FieldInfo f => Expression.Field(cast, f),
+            PropertyInfo p => Expression.Property(cast, p),
+            _ => throw new BinaryMapperException($"不支持的成员类型: {member.MemberType}。")
+        };
+        return Expression.Lambda<Func<object, object?>>(
+            Expression.Convert(access, typeof(object)), instance).Compile();
+    }
+
+    private static Action<object, object?> CompileSetter(MemberInfo member, Type memberType)
+    {
+        var instance = Expression.Parameter(typeof(object), "instance");
+        var value = Expression.Parameter(typeof(object), "value");
+        var castInstance = Expression.Convert(instance, member.DeclaringType!);
+        var castValue = Expression.Convert(value, memberType);
+        Expression access = member switch
+        {
+            FieldInfo f => Expression.Field(castInstance, f),
+            PropertyInfo p => Expression.Property(castInstance, p),
+            _ => throw new BinaryMapperException($"不支持的成员类型: {member.MemberType}。")
+        };
+        return Expression.Lambda<Action<object, object?>>(
+            Expression.Assign(access, castValue), instance, value).Compile();
     }
 
     private static Encoding? ResolveEncoding(string? name)

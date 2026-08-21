@@ -120,41 +120,11 @@ internal static class BinaryMapperHelpers
     {
         var underlyingType = Nullable.GetUnderlyingType(member.MemberType) ?? member.MemberType;
 
-        if (underlyingType == typeof(short))
-            return ReadInt16(data, ref position, member.Endianness);
-        if (underlyingType == typeof(ushort))
-            return ReadUInt16(data, ref position, member.Endianness);
-        if (underlyingType == typeof(int))
-            return ReadInt32(data, ref position, member.Endianness);
-        if (underlyingType == typeof(uint))
-            return ReadUInt32(data, ref position, member.Endianness);
-        if (underlyingType == typeof(long))
-            return ReadInt64(data, ref position, member.Endianness);
-        if (underlyingType == typeof(ulong))
-            return ReadUInt64(data, ref position, member.Endianness);
-        if (underlyingType == typeof(byte))
-            return ReadByte(data, ref position);
-        if (underlyingType == typeof(sbyte))
-            return (sbyte)ReadByte(data, ref position);
-        if (underlyingType == typeof(Half))
-            return ReadHalf(data, ref position, member.Endianness);
-        if (underlyingType == typeof(float))
-            return ReadSingle(data, ref position, member.Endianness);
-        if (underlyingType == typeof(double))
-            return ReadDouble(data, ref position, member.Endianness);
-        if (underlyingType == typeof(bool))
-            return ReadBoolean(data, ref position);
-        if (underlyingType == typeof(char))
-            return (char)ReadUInt16(data, ref position, member.Endianness);
-
-        if (underlyingType == typeof(Guid))
-            return ReadGuid(data, ref position);
-
         if (underlyingType.IsEnum)
         {
             var enumUnderlying = Enum.GetUnderlyingType(underlyingType);
-            var enumValue = ReadPrimitive(data, ref position, member.WithType(enumUnderlying), settings);
-            return Enum.ToObject(underlyingType, enumValue);
+            var enumValue = ReadMember(data, ref position, member.WithType(enumUnderlying), settings);
+            return Enum.ToObject(underlyingType, enumValue!);
         }
 
         if (underlyingType.IsValueType)
@@ -171,64 +141,76 @@ internal static class BinaryMapperHelpers
     {
         value = null!;
 
-        if (member.MemberType == typeof(short))
+        var checkType = Nullable.GetUnderlyingType(member.MemberType) ?? member.MemberType;
+
+        if (checkType == typeof(short))
         {
             value = ReadInt16(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(ushort))
+        if (checkType == typeof(ushort))
         {
             value = ReadUInt16(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(int))
+        if (checkType == typeof(int))
         {
             value = ReadInt32(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(uint))
+        if (checkType == typeof(uint))
         {
             value = ReadUInt32(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(long))
+        if (checkType == typeof(long))
         {
             value = ReadInt64(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(ulong))
+        if (checkType == typeof(ulong))
         {
             value = ReadUInt64(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(byte))
+        if (checkType == typeof(byte))
         {
             value = ReadByte(data, ref position);
             return true;
         }
-        if (member.MemberType == typeof(sbyte))
+        if (checkType == typeof(sbyte))
         {
             value = (sbyte)ReadByte(data, ref position);
             return true;
         }
-        if (member.MemberType == typeof(float))
+        if (checkType == typeof(Half))
+        {
+            value = ReadHalf(data, ref position, member.Endianness);
+            return true;
+        }
+        if (checkType == typeof(float))
         {
             value = ReadSingle(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(double))
+        if (checkType == typeof(double))
         {
             value = ReadDouble(data, ref position, member.Endianness);
             return true;
         }
-        if (member.MemberType == typeof(bool))
+        if (checkType == typeof(bool))
         {
             value = ReadBoolean(data, ref position);
             return true;
         }
-        if (member.MemberType == typeof(char))
+        if (checkType == typeof(char))
         {
             value = (char)ReadUInt16(data, ref position, member.Endianness);
+            return true;
+        }
+        if (checkType == typeof(Guid))
+        {
+            value = ReadGuid(data, ref position);
             return true;
         }
 
